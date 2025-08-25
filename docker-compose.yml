@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  mysql-backup:
+    build: .
+    container_name: mysql-backup
+    restart: unless-stopped
+    volumes:
+      - ./backups:/backups  # 挂载备份目录到宿主机
+
+    # 使用 environment 直接设置所有环境变量
+    environment:
+      # 数据库连接配置
+      - MYSQL_HOST=your_mysql_host
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=your_database_name
+      - MYSQL_USER=your_username
+      - MYSQL_PASSWORD=your_password
+
+      # 备份配置
+      - BACKUP_SCHEDULE=0 2 * * *
+      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_DIR=/backups
