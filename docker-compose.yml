@@ -1,17 +1,16 @@
-version: '3.8'
+version: '3'
 
 services:
   mysql-backup:
     build: .
     container_name: mysql-backup
-    environment:
-      - MYSQL_HOST=your-mysql-server.com
-      - MYSQL_PORT=3306
-      - MYSQL_USER=backupuser
-      - MYSQL_PASSWORD=your_secure_password
-      - MYSQL_DATABASE=all  # 或指定数据库名
-      - BACKUP_INTERVAL=daily  # daily, weekly, hourly, test
-      - MAX_BACKUPS=7
-    volumes:
-      - ./backups:/backups
     restart: unless-stopped
+    environment:
+      - MYSQL_HOST=your_mysql_host
+      - MYSQL_PORT=3306
+      - MYSQL_USER=your_mysql_user
+      - MYSQL_PASSWORD=your_mysql_password
+      - DATABASES=all # 或者指定数据库，如: db1,db2,db3
+      - RETENTION_DAYS=7
+    volumes:
+      - ./backup:/backup
