@@ -1,23 +1,36 @@
-FROM alpine:latest
+# 阶段1：从官方 MySQL 镜像获取 mysqldump 和 mysql 客户端
+FROM mysql:8.0 as mysql-client
 
-# 安装必要的软件
-RUN apk update && \
-    apk add --no-cache mysql-client bash tzdata && \
-    rm -rf /var/cache/apk/*
+# 阶段2：Python 应用镜像
+FROM python:3.10-slim
 
-# 创建备份目录
-RUN mkdir -p /backup
+# 安装 MySQL 客户端运行依赖
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libncurses6 \
+        libtinfo6 \
+        libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# 复制备份脚本和crontab文件
-COPY backup.sh /usr/local/bin/backup.sh
-COPY crontab /etc/crontabs/root
+# 配置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 设置脚本执行权限
-RUN chmod +x /usr/local/bin/backup.sh
+# 拷贝 MySQL 客户端工具 (mysqldump, mysql) 到 Python 镜像
+COPY --from=mysql-client /usr/bin/mysqldump /usr/bin/mysql /usr/bin/
 
-# 设置时区（根据需要修改）
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone
+# 创建工作目录
+WORKDIR /app
+RUN mkdir -p /backups
 
-# 启动cron
-CMD ["crond", "-f", "-d", "8"]
+# 拷贝应用代码
+COPY backup.py scheduler.py notifier.py /app/
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir requests schedule
+
+# 声明挂载点
+VOLUME ["/backups"]
+
+# 默认启动
+CMD ["python", "scheduler.py"]
